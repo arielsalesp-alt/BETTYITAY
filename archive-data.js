@@ -8518,10 +8518,6 @@ window.EXPENSE_ARCHIVE_DATA = {
       {
         "name": "תשלום 3",
         "amount": 5500.0
-      },
-      {
-        "name": "סה\"כ חוב",
-        "amount": 44500.0
       }
     ],
     "years": [

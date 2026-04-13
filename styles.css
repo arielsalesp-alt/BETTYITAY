@@ -316,8 +316,18 @@ input[type="month"] {
   background: var(--soft);
 }
 
+.debt-total {
+  grid-column: 1 / -1;
+  border-color: #d3ba54;
+  background: #fff8d9;
+}
+
 .debt-focus h3 {
   background: #d8eee7;
+}
+
+.debt-total h3 {
+  background: #f7eaa6;
 }
 
 .debt-list h3 {

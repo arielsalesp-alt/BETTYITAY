@@ -102,6 +102,8 @@ def parse_debts(ws: Any) -> dict[str, Any]:
     for row in range(3, ws.max_row + 1):
         name = clean(ws.cell(row, 1).value)
         amount = number(ws.cell(row, 2).value)
+        if "סה" in name:
+            continue
         if name and amount:
             bankruptcy.append({"name": name, "amount": amount})
 
