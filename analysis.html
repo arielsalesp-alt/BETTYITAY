@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ניתוח הוצאות בטי ואיתי</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="seed-data.js" defer></script>
-  <script src="archive-data.js" defer></script>
-  <script src="analysis.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=3">
+  <script src="seed-data.js?v=3" defer></script>
+  <script src="archive-data.js?v=3" defer></script>
+  <script src="analysis.js?v=3" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -23,6 +23,13 @@
     <section class="toolbar" aria-label="פעולות ניתוח">
       <a class="button-link" href="index.html">חזרה למערכת</a>
       <button id="refreshAnalysisBtn" type="button">נתח הוצאות</button>
+      <label>
+        סוג ניתוח
+        <select id="analysisPeriod">
+          <option value="monthly">חודשי</option>
+          <option value="yearly">שנתי</option>
+        </select>
+      </label>
       <label>
         תקופה
         <select id="analysisRange">
@@ -40,7 +47,7 @@
         <div class="section-actions">
           <div>
             <p class="eyebrow">חודשים</p>
-            <h2>סה״כ הוצאות לפי חודש</h2>
+            <h2 id="periodChartTitle">סה״כ הוצאות לפי חודש</h2>
           </div>
         </div>
         <canvas id="monthlyChart" height="280"></canvas>

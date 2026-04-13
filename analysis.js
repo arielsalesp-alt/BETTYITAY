@@ -2,8 +2,10 @@ const STORAGE_KEY = "family-expense-manager-2026";
 
 const els = {
   range: document.querySelector("#analysisRange"),
+  period: document.querySelector("#analysisPeriod"),
   refresh: document.querySelector("#refreshAnalysisBtn"),
   summary: document.querySelector("#analysisSummary"),
+  periodChartTitle: document.querySelector("#periodChartTitle"),
   monthlyChart: document.querySelector("#monthlyChart"),
   categoryChart: document.querySelector("#categoryChart"),
   peopleChart: document.querySelector("#peopleChart"),
@@ -59,6 +61,23 @@ function getMonthStats(month) {
   return { name: month.name, source: month.source || "", categories, betty, itai, cash, total: betty + itai + cash };
 }
 
+function getMonthYear(month, index) {
+  const text = String(month.name || "");
+  const directYear = text.match(/(?:^|\D)(2[1-6])(?:\D|$)/);
+  if (directYear) return `20${directYear[1]}`;
+  if (!month.source) return "2026";
+  if (/חודש\s*(7|8|9|10|11|12)$/.test(text)) return "2021";
+  if (/ינואר|פברואר/.test(text)) return "2022";
+  if (index < 6) return "2021";
+  if (index < 8) return "2022";
+  return "ללא שנה";
+}
+
+function getPeriodLabel(month, index) {
+  const year = getMonthYear(month, index);
+  return els.period.value === "yearly" ? year : `${month.name}${year && !month.name.includes(year.slice(2)) ? ` ${year}` : ""}`;
+}
+
 function filterMonths(months) {
   const range = els.range.value;
   if (range === "2026") return months.filter((month) => !month.source);
@@ -68,13 +87,20 @@ function filterMonths(months) {
 
 function buildAnalysis() {
   const state = loadAnalysisState();
-  const months = filterMonths(state.months).map(getMonthStats).filter((month) => month.total > 0);
-  const totals = months.reduce((sum, month) => sum + month.total, 0);
-  const betty = months.reduce((sum, month) => sum + month.betty, 0);
-  const itai = months.reduce((sum, month) => sum + month.itai, 0);
-  const cash = months.reduce((sum, month) => sum + month.cash, 0);
-  const average = months.length ? totals / months.length : 0;
-  const biggestMonth = months.reduce((best, month) => (month.total > (best?.total || 0) ? month : best), null);
+  const periodMode = els.period.value;
+  const rawMonths = filterMonths(state.months);
+  const months = rawMonths.map((month, index) => ({
+    ...getMonthStats(month),
+    period: getPeriodLabel(month, index),
+    year: getMonthYear(month, index),
+  })).filter((month) => month.total > 0);
+  const periodRows = groupMonthsByPeriod(months);
+  const totals = periodRows.reduce((sum, period) => sum + period.total, 0);
+  const betty = periodRows.reduce((sum, period) => sum + period.betty, 0);
+  const itai = periodRows.reduce((sum, period) => sum + period.itai, 0);
+  const cash = periodRows.reduce((sum, period) => sum + period.cash, 0);
+  const average = periodRows.length ? totals / periodRows.length : 0;
+  const biggestPeriod = periodRows.reduce((best, period) => (period.total > (best?.total || 0) ? period : best), null);
 
   const categories = new Map();
   const expenses = [];
@@ -89,8 +115,9 @@ function buildAnalysis() {
       category.items.forEach((item) => {
         const total = (Number(item.betty) || 0) + (Number(item.itai) || 0) + (Number(item.cash) || 0);
         if (total <= 0) return;
+        const monthIndex = rawMonths.indexOf(month);
         expenses.push({
-          month: month.name,
+          month: `${month.name} ${getMonthYear(month, monthIndex)}`,
           category: category.name,
           name: item.name,
           total,
@@ -107,8 +134,18 @@ function buildAnalysis() {
     .sort((a, b) => b.total - a.total);
   const topExpenses = expenses.sort((a, b) => b.total - a.total).slice(0, 12);
 
-  renderSummary({ totals, betty, itai, cash, average, biggestMonth, monthCount: months.length });
-  drawBars(els.monthlyChart, months.slice(-18).map((month) => ({ label: month.name, value: month.total })), {
+  els.periodChartTitle.textContent = periodMode === "yearly" ? "סה״כ הוצאות לפי שנה" : "סה״כ הוצאות לפי חודש";
+  renderSummary({
+    totals,
+    betty,
+    itai,
+    cash,
+    average,
+    biggestPeriod,
+    periodCount: periodRows.length,
+    periodLabel: periodMode === "yearly" ? "שנים" : "חודשים",
+  });
+  drawBars(els.monthlyChart, periodRows.slice(periodMode === "yearly" ? -8 : -18).map((period) => ({ label: period.label, value: period.total })), {
     color: "#138a72",
     horizontal: false,
   });
@@ -116,13 +153,29 @@ function buildAnalysis() {
     color: "#d85b4a",
     horizontal: true,
   });
-  drawGroupedBars(els.peopleChart, months.slice(-12).map((month) => ({
-    label: month.name,
-    betty: month.betty,
-    itai: month.itai,
-    cash: month.cash,
+  drawGroupedBars(els.peopleChart, periodRows.slice(periodMode === "yearly" ? -8 : -12).map((period) => ({
+    label: period.label,
+    betty: period.betty,
+    itai: period.itai,
+    cash: period.cash,
   })));
   renderTopExpenses(topExpenses);
+}
+
+function groupMonthsByPeriod(months) {
+  const groups = new Map();
+  months.forEach((month) => {
+    const key = els.period.value === "yearly" ? month.year : month.period;
+    if (!groups.has(key)) {
+      groups.set(key, { label: key, betty: 0, itai: 0, cash: 0, total: 0 });
+    }
+    const group = groups.get(key);
+    group.betty += month.betty;
+    group.itai += month.itai;
+    group.cash += month.cash;
+    group.total += month.total;
+  });
+  return Array.from(groups.values());
 }
 
 function renderSummary(data) {
@@ -132,18 +185,18 @@ function renderSummary(data) {
       <strong>${money(data.totals)}</strong>
     </article>
     <article class="metric">
-      <span>ממוצע לחודש</span>
+      <span>ממוצע ל${data.periodLabel === "שנים" ? "שנה" : "חודש"}</span>
       <strong>${money(data.average)}</strong>
     </article>
     <article class="metric">
-      <span>החודש הגבוה</span>
-      <strong>${data.biggestMonth ? money(data.biggestMonth.total) : money(0)}</strong>
-      <small>${data.biggestMonth?.name || "אין נתונים"}</small>
+      <span>התקופה הגבוהה</span>
+      <strong>${data.biggestPeriod ? money(data.biggestPeriod.total) : money(0)}</strong>
+      <small>${data.biggestPeriod?.label || "אין נתונים"}</small>
     </article>
     <article class="metric highlight">
       <span>בטי / איתי / מזומן</span>
       <strong>${money(data.betty)} / ${money(data.itai)} / ${money(data.cash)}</strong>
-      <small>${data.monthCount} חודשים בניתוח</small>
+      <small>${data.periodCount} ${data.periodLabel} בניתוח</small>
     </article>
   `;
 }
@@ -313,5 +366,6 @@ function escapeHtml(value) {
 
 els.refresh.addEventListener("click", buildAnalysis);
 els.range.addEventListener("change", buildAnalysis);
+els.period.addEventListener("change", buildAnalysis);
 window.addEventListener("resize", buildAnalysis);
 buildAnalysis();
