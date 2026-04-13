@@ -151,7 +151,18 @@ h2 {
   margin-top: 18px;
 }
 
+.analysis-wide {
+  grid-column: 1 / -1;
+}
+
 .top-expenses {
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.detail-tables {
+  display: grid;
+  gap: 18px;
   margin-top: 18px;
   overflow-x: auto;
 }

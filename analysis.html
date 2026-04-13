@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ניתוח הוצאות בטי ואיתי</title>
-  <link rel="stylesheet" href="styles.css?v=3">
-  <script src="seed-data.js?v=3" defer></script>
-  <script src="archive-data.js?v=3" defer></script>
-  <script src="analysis.js?v=3" defer></script>
+  <link rel="stylesheet" href="styles.css?v=4">
+  <script src="seed-data.js?v=4" defer></script>
+  <script src="archive-data.js?v=4" defer></script>
+  <script src="analysis.js?v=4" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -37,6 +37,14 @@
           <option value="2026">2026 בלבד</option>
           <option value="archive">שנים קודמות</option>
         </select>
+      </label>
+      <label>
+        שנה
+        <select id="analysisYear"></select>
+      </label>
+      <label>
+        חודש
+        <select id="analysisMonth"></select>
       </label>
     </section>
 
@@ -81,6 +89,16 @@
           </div>
         </div>
         <div id="topExpenses" class="top-expenses"></div>
+      </article>
+
+      <article class="analysis-panel analysis-wide">
+        <div class="section-actions">
+          <div>
+            <p class="eyebrow">פירוט מדויק</p>
+            <h2 id="detailTitle">נתונים לפי שנה וחודש</h2>
+          </div>
+        </div>
+        <div id="detailTables" class="detail-tables"></div>
       </article>
     </section>
   </main>

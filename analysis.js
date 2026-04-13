@@ -3,6 +3,8 @@ const STORAGE_KEY = "family-expense-manager-2026";
 const els = {
   range: document.querySelector("#analysisRange"),
   period: document.querySelector("#analysisPeriod"),
+  year: document.querySelector("#analysisYear"),
+  month: document.querySelector("#analysisMonth"),
   refresh: document.querySelector("#refreshAnalysisBtn"),
   summary: document.querySelector("#analysisSummary"),
   periodChartTitle: document.querySelector("#periodChartTitle"),
@@ -10,7 +12,24 @@ const els = {
   categoryChart: document.querySelector("#categoryChart"),
   peopleChart: document.querySelector("#peopleChart"),
   topExpenses: document.querySelector("#topExpenses"),
+  detailTitle: document.querySelector("#detailTitle"),
+  detailTables: document.querySelector("#detailTables"),
 };
+
+const HEBREW_MONTHS = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -20,13 +39,16 @@ function loadAnalysisState() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      return mergeArchiveMonths(JSON.parse(saved));
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
   }
 
-  const base = clone(window.EXPENSE_SEED_DATA);
+  return mergeArchiveMonths(clone(window.EXPENSE_SEED_DATA));
+}
+
+function mergeArchiveMonths(base) {
   if (window.EXPENSE_ARCHIVE_DATA?.months) {
     const existing = new Set(base.months.map((month) => month.name));
     window.EXPENSE_ARCHIVE_DATA.months.forEach((month) => {
@@ -73,9 +95,23 @@ function getMonthYear(month, index) {
   return "ללא שנה";
 }
 
+function getMonthNumber(month, index) {
+  const text = String(month.name || "").replace(/\s+/g, " ");
+  const explicitNumber = text.match(/חודש\s*(\d{1,2})/);
+  if (explicitNumber) return Math.min(Number(explicitNumber[1]), 12);
+
+  const normalized = text.replace("אפירל", "אפריל");
+  const foundIndex = HEBREW_MONTHS.findIndex((name) => normalized.includes(name));
+  if (foundIndex >= 0) return foundIndex + 1;
+
+  return ((index % 12) + 1);
+}
+
 function getPeriodLabel(month, index) {
   const year = getMonthYear(month, index);
-  return els.period.value === "yearly" ? year : `${month.name}${year && !month.name.includes(year.slice(2)) ? ` ${year}` : ""}`;
+  const monthNumber = getMonthNumber(month, index);
+  const monthName = HEBREW_MONTHS[monthNumber - 1] || month.name;
+  return els.period.value === "yearly" ? year : `${monthName} ${year}`;
 }
 
 function filterMonths(months) {
@@ -89,11 +125,16 @@ function buildAnalysis() {
   const state = loadAnalysisState();
   const periodMode = els.period.value;
   const rawMonths = filterMonths(state.months);
-  const months = rawMonths.map((month, index) => ({
+  const allMonths = rawMonths.map((month, index) => ({
     ...getMonthStats(month),
     period: getPeriodLabel(month, index),
     year: getMonthYear(month, index),
+    monthNumber: getMonthNumber(month, index),
+    monthLabel: HEBREW_MONTHS[getMonthNumber(month, index) - 1] || month.name,
+    original: month,
   })).filter((month) => month.total > 0);
+  syncFilterOptions(allMonths);
+  const months = filterBySelectedYearAndMonth(allMonths);
   const periodRows = groupMonthsByPeriod(months);
   const totals = periodRows.reduce((sum, period) => sum + period.total, 0);
   const betty = periodRows.reduce((sum, period) => sum + period.betty, 0);
@@ -110,14 +151,14 @@ function buildAnalysis() {
     });
   });
 
-  filterMonths(state.months).forEach((month) => {
-    month.categories.forEach((category) => {
+  months.forEach((month) => {
+    month.original.categories.forEach((category) => {
       category.items.forEach((item) => {
         const total = (Number(item.betty) || 0) + (Number(item.itai) || 0) + (Number(item.cash) || 0);
         if (total <= 0) return;
-        const monthIndex = rawMonths.indexOf(month);
         expenses.push({
-          month: `${month.name} ${getMonthYear(month, monthIndex)}`,
+          month: month.period,
+          year: month.year,
           category: category.name,
           name: item.name,
           total,
@@ -160,6 +201,36 @@ function buildAnalysis() {
     cash: period.cash,
   })));
   renderTopExpenses(topExpenses);
+  renderDetailTables({ periodRows, categoryRows, expenses, months });
+}
+
+function syncFilterOptions(months) {
+  const selectedYear = els.year.value || "all";
+  const selectedMonth = els.month.value || "all";
+  const years = unique(months.map((month) => month.year)).sort();
+  els.year.innerHTML = [`<option value="all">כל השנים</option>`]
+    .concat(years.map((year) => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`))
+    .join("");
+  els.year.value = years.includes(selectedYear) ? selectedYear : "all";
+
+  const monthSource = els.year.value === "all" ? months : months.filter((month) => month.year === els.year.value);
+  const monthNumbers = unique(monthSource.map((month) => month.monthNumber)).sort((a, b) => a - b);
+  els.month.innerHTML = [`<option value="all">כל החודשים</option>`]
+    .concat(monthNumbers.map((monthNumber) => `<option value="${monthNumber}">${HEBREW_MONTHS[monthNumber - 1]}</option>`))
+    .join("");
+  els.month.value = monthNumbers.includes(Number(selectedMonth)) ? selectedMonth : "all";
+}
+
+function filterBySelectedYearAndMonth(months) {
+  return months.filter((month) => {
+    const yearMatch = els.year.value === "all" || month.year === els.year.value;
+    const monthMatch = els.month.value === "all" || month.monthNumber === Number(els.month.value);
+    return yearMatch && monthMatch;
+  });
+}
+
+function unique(values) {
+  return Array.from(new Set(values.filter((value) => value !== "" && value != null)));
 }
 
 function groupMonthsByPeriod(months) {
@@ -224,6 +295,88 @@ function renderTopExpenses(rows) {
         </tr>
       </thead>
       <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
+function renderDetailTables(data) {
+  const titleParts = [];
+  if (els.year.value !== "all") titleParts.push(els.year.value);
+  if (els.month.value !== "all") titleParts.push(HEBREW_MONTHS[Number(els.month.value) - 1]);
+  els.detailTitle.textContent = titleParts.length ? `נתונים מדויקים - ${titleParts.join(" / ")}` : "נתונים מדויקים - כל התקופה";
+
+  const periodBody = data.periodRows.length
+    ? data.periodRows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.label)}</td>
+          <td>${money(row.betty)}</td>
+          <td>${money(row.itai)}</td>
+          <td>${money(row.cash)}</td>
+          <td>${money(row.total)}</td>
+          <td>${money(Math.abs(row.betty - row.itai))}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="6">אין נתונים לתקופה שנבחרה</td></tr>`;
+
+  const categoryBody = data.categoryRows.length
+    ? data.categoryRows.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${money(row.total)}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="2">אין קטגוריות לתקופה שנבחרה</td></tr>`;
+
+  const expenseBody = data.expenses.length
+    ? data.expenses.map((row) => `
+        <tr>
+          <td>${escapeHtml(row.month)}</td>
+          <td>${escapeHtml(row.category)}</td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${money(row.betty)}</td>
+          <td>${money(row.itai)}</td>
+          <td>${money(row.cash)}</td>
+          <td>${money(row.total)}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="7">אין הוצאות לתקופה שנבחרה</td></tr>`;
+
+  els.detailTables.innerHTML = `
+    <table class="debt-table">
+      <thead>
+        <tr>
+          <th>תקופה</th>
+          <th>בטי</th>
+          <th>איתי</th>
+          <th>מזומן</th>
+          <th>סה״כ</th>
+          <th>פער בטי/איתי</th>
+        </tr>
+      </thead>
+      <tbody>${periodBody}</tbody>
+    </table>
+    <table class="debt-table">
+      <thead>
+        <tr>
+          <th>קטגוריה</th>
+          <th>סה״כ</th>
+        </tr>
+      </thead>
+      <tbody>${categoryBody}</tbody>
+    </table>
+    <table class="debt-table">
+      <thead>
+        <tr>
+          <th>חודש</th>
+          <th>קטגוריה</th>
+          <th>הוצאה</th>
+          <th>בטי</th>
+          <th>איתי</th>
+          <th>מזומן</th>
+          <th>סה״כ</th>
+        </tr>
+      </thead>
+      <tbody>${expenseBody}</tbody>
     </table>
   `;
 }
@@ -367,5 +520,7 @@ function escapeHtml(value) {
 els.refresh.addEventListener("click", buildAnalysis);
 els.range.addEventListener("change", buildAnalysis);
 els.period.addEventListener("change", buildAnalysis);
+els.year.addEventListener("change", buildAnalysis);
+els.month.addEventListener("change", buildAnalysis);
 window.addEventListener("resize", buildAnalysis);
 buildAnalysis();
