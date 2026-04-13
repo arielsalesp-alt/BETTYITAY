@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>התחשבנות בטי ואיתי 2026</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="seed-data.js" defer></script>
+  <script src="archive-data.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">ניהול הוצאות משותפות</p>
+      <h1>התחשבנות בטי ואיתי 2026</h1>
+      <p class="lede">הוצאות חודשיות, חלוקה בין בטי לאיתי, ופער התשלומים כמו באקסל המקורי.</p>
+    </div>
+    <img class="topbar-image" src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=80" alt="">
+  </header>
+
+  <main>
+    <section class="toolbar" aria-label="בחירת חודש ופעולות">
+      <label>
+        חודש
+        <select id="monthSelect"></select>
+      </label>
+      <button id="closeMonthBtn" type="button">סגור חודש</button>
+      <button id="addMonthBtn" type="button">הוסף חודש הבא</button>
+      <button id="openDebtsBtn" type="button">פתח חובות</button>
+      <button id="exportBtn" type="button">ייצוא גיבוי</button>
+      <label class="file-button">
+        ייבוא גיבוי
+        <input id="importInput" type="file" accept="application/json">
+      </label>
+    </section>
+
+    <section class="summary-grid" id="summary"></section>
+
+    <section class="entry-panel">
+      <div>
+        <p class="eyebrow">הוספה מהירה</p>
+        <h2>הוצאה חדשה</h2>
+      </div>
+      <form id="entryForm" class="entry-form">
+        <label>
+          קטגוריה
+          <select name="category" id="categorySelect"></select>
+        </label>
+        <label>
+          שם ההוצאה
+          <input name="name" required placeholder="לדוגמה: סופר">
+        </label>
+        <label>
+          בטי
+          <input name="betty" type="number" inputmode="decimal" step="0.01" value="0">
+        </label>
+        <label>
+          איתי
+          <input name="itai" type="number" inputmode="decimal" step="0.01" value="0">
+        </label>
+        <button type="submit">הוספה</button>
+      </form>
+    </section>
+
+    <section id="categories" class="categories"></section>
+
+    <section class="debt-section" id="debtPanel" hidden>
+      <div class="section-actions">
+        <div>
+          <p class="eyebrow">ארכיון</p>
+          <h2>חובות לפי שנים</h2>
+        </div>
+        <button id="closeDebtsBtn" type="button">סגור חובות</button>
+      </div>
+      <div id="debts" class="debt-grid"></div>
+    </section>
+  </main>
+</body>
+</html>
