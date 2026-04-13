@@ -8571,10 +8571,6 @@ window.EXPENSE_ARCHIVE_DATA = {
           {
             "month": "2022-12-01",
             "amount": 1358.0
-          },
-          {
-            "month": "סה\"כ חוב",
-            "amount": 21203.0
           }
         ]
       },
@@ -8628,10 +8624,6 @@ window.EXPENSE_ARCHIVE_DATA = {
           {
             "month": "2023-12-01",
             "amount": 0.0
-          },
-          {
-            "month": "סה\"כ",
-            "amount": 3560.0
           }
         ]
       },
@@ -8685,10 +8677,6 @@ window.EXPENSE_ARCHIVE_DATA = {
           {
             "month": "2024-12-01",
             "amount": 1236.0
-          },
-          {
-            "month": "סה\"כ",
-            "amount": 7745.0
           }
         ]
       },
@@ -8742,10 +8730,6 @@ window.EXPENSE_ARCHIVE_DATA = {
           {
             "month": "2024-12-01",
             "amount": 1176.0
-          },
-          {
-            "month": "סה\"כ",
-            "amount": 10100.0
           }
         ]
       }

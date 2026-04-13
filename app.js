@@ -376,7 +376,7 @@ function renderDebts() {
   const bankruptcyTotal = bankruptcyRows.reduce((sum, item) => sum + item.amount, 0);
   const monthlyBalance = getMonthlyDebtBalance();
   const yearsBalance = state.debts.years.reduce(
-    (sum, year) => sum + year.entries.reduce((yearSum, item) => yearSum + item.amount, 0),
+    (sum, year) => sum + getYearDebtRows(year).reduce((yearSum, item) => yearSum + item.amount, 0),
     0,
   );
   const totalDebtBalance = bankruptcyTotal + yearsBalance + (state.debts.includeMonthClosuresInTotal ? monthlyBalance : 0);
@@ -409,11 +409,12 @@ function renderDebts() {
   `;
 
   const years = state.debts.years.map((year) => {
-    const total = year.entries.reduce((sum, item) => sum + item.amount, 0);
+    const yearRows = getYearDebtRows(year);
+    const total = yearRows.reduce((sum, item) => sum + item.amount, 0);
     return `
       <div class="debt-list">
         <h3>${year.year} - ${formatDebtStatus(total)}</h3>
-        ${renderDebtTable(year.entries.map((item) => ({
+        ${renderDebtTable(yearRows.map((item) => ({
           month: formatMonth(item.month),
           party: getDebtPartyText(item.amount),
           amount: Math.abs(Number(item.amount) || 0),
@@ -443,6 +444,13 @@ function renderDebts() {
 
 function getBankruptcyRows() {
   return state.debts.bankruptcy.filter((item) => !String(item.name || "").includes("סה"));
+}
+
+function getYearDebtRows(year) {
+  return year.entries.filter((item) => {
+    const month = String(item.month || "").toLowerCase();
+    return !month.includes("סה") && !month.includes("ñä");
+  });
 }
 
 function renderDebtTable(rows) {

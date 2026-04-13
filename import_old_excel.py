@@ -111,6 +111,9 @@ def parse_debts(ws: Any) -> dict[str, Any]:
     for year, month_col, amount_col in [(2022, 4, 5), (2023, 7, 8), (2024, 10, 11), (2025, 13, 14)]:
         entries = []
         for row in range(3, ws.max_row + 1):
+            raw_month = clean(ws.cell(row, month_col).value)
+            if "סה" in raw_month or "ñä" in raw_month.lower():
+                continue
             month = json_date(ws.cell(row, month_col).value)
             amount = number(ws.cell(row, amount_col).value)
             if month or amount:
