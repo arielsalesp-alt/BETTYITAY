@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ניתוח הוצאות בטי ואיתי</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="seed-data.js" defer></script>
+  <script src="archive-data.js" defer></script>
+  <script src="analysis.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">ניתוח הוצאות</p>
+      <h1>גרפים לפי חודשים וקטגוריות</h1>
+      <p class="lede">סיכום חודשי, חלוקה בין בטי לאיתי, קטגוריות גדולות והוצאות בולטות.</p>
+    </div>
+    <img class="topbar-image" src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=900&q=80" alt="">
+  </header>
+
+  <main>
+    <section class="toolbar" aria-label="פעולות ניתוח">
+      <a class="button-link" href="index.html">חזרה למערכת</a>
+      <button id="refreshAnalysisBtn" type="button">נתח הוצאות</button>
+      <label>
+        תקופה
+        <select id="analysisRange">
+          <option value="all">כל החודשים</option>
+          <option value="2026">2026 בלבד</option>
+          <option value="archive">שנים קודמות</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="summary-grid" id="analysisSummary"></section>
+
+    <section class="analysis-grid">
+      <article class="analysis-panel">
+        <div class="section-actions">
+          <div>
+            <p class="eyebrow">חודשים</p>
+            <h2>סה״כ הוצאות לפי חודש</h2>
+          </div>
+        </div>
+        <canvas id="monthlyChart" height="280"></canvas>
+      </article>
+
+      <article class="analysis-panel">
+        <div class="section-actions">
+          <div>
+            <p class="eyebrow">קטגוריות</p>
+            <h2>איפה יוצא הכי הרבה</h2>
+          </div>
+        </div>
+        <canvas id="categoryChart" height="280"></canvas>
+      </article>
+
+      <article class="analysis-panel">
+        <div class="section-actions">
+          <div>
+            <p class="eyebrow">חלוקה</p>
+            <h2>בטי מול איתי</h2>
+          </div>
+        </div>
+        <canvas id="peopleChart" height="280"></canvas>
+      </article>
+
+      <article class="analysis-panel">
+        <div class="section-actions">
+          <div>
+            <p class="eyebrow">רשימה</p>
+            <h2>הוצאות בולטות</h2>
+          </div>
+        </div>
+        <div id="topExpenses" class="top-expenses"></div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
