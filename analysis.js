@@ -342,42 +342,66 @@ function renderDetailTables(data) {
     : `<tr><td colspan="7">אין הוצאות לתקופה שנבחרה</td></tr>`;
 
   els.detailTables.innerHTML = `
-    <table class="debt-table">
-      <thead>
-        <tr>
-          <th>תקופה</th>
-          <th>בטי</th>
-          <th>איתי</th>
-          <th>מזומן</th>
-          <th>סה״כ</th>
-          <th>פער בטי/איתי</th>
-        </tr>
-      </thead>
-      <tbody>${periodBody}</tbody>
-    </table>
-    <table class="debt-table">
-      <thead>
-        <tr>
-          <th>קטגוריה</th>
-          <th>סה״כ</th>
-        </tr>
-      </thead>
-      <tbody>${categoryBody}</tbody>
-    </table>
-    <table class="debt-table">
-      <thead>
-        <tr>
-          <th>חודש</th>
-          <th>קטגוריה</th>
-          <th>הוצאה</th>
-          <th>בטי</th>
-          <th>איתי</th>
-          <th>מזומן</th>
-          <th>סה״כ</th>
-        </tr>
-      </thead>
-      <tbody>${expenseBody}</tbody>
-    </table>
+    <section class="detail-block">
+      <div class="detail-block-head">
+        <h3>סיכום תקופה</h3>
+        <span>${data.periodRows.length} שורות</span>
+      </div>
+      <div class="table-scroll">
+        <table class="debt-table pretty-table">
+          <thead>
+            <tr>
+              <th>תקופה</th>
+              <th>בטי</th>
+              <th>איתי</th>
+              <th>מזומן</th>
+              <th>סה״כ</th>
+              <th>פער בטי/איתי</th>
+            </tr>
+          </thead>
+          <tbody>${periodBody}</tbody>
+        </table>
+      </div>
+    </section>
+    <section class="detail-block">
+      <div class="detail-block-head">
+        <h3>סיכום קטגוריות</h3>
+        <span>${data.categoryRows.length} קטגוריות</span>
+      </div>
+      <div class="table-scroll">
+        <table class="debt-table pretty-table compact-table">
+          <thead>
+            <tr>
+              <th>קטגוריה</th>
+              <th>סה״כ</th>
+            </tr>
+          </thead>
+          <tbody>${categoryBody}</tbody>
+        </table>
+      </div>
+    </section>
+    <section class="detail-block detail-block-wide">
+      <div class="detail-block-head">
+        <h3>פירוט הוצאות</h3>
+        <span>${data.expenses.length} הוצאות</span>
+      </div>
+      <div class="table-scroll">
+        <table class="debt-table pretty-table">
+          <thead>
+            <tr>
+              <th>חודש</th>
+              <th>קטגוריה</th>
+              <th>הוצאה</th>
+              <th>בטי</th>
+              <th>איתי</th>
+              <th>מזומן</th>
+              <th>סה״כ</th>
+            </tr>
+          </thead>
+          <tbody>${expenseBody}</tbody>
+        </table>
+      </div>
+    </section>
   `;
 }
 

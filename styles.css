@@ -162,9 +162,79 @@ h2 {
 
 .detail-tables {
   display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 18px;
   margin-top: 18px;
+}
+
+.detail-block {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.detail-block-wide {
+  grid-column: 1 / -1;
+}
+
+.detail-block-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcfc;
+}
+
+.detail-block-head h3 {
+  margin: 0;
+}
+
+.detail-block-head span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.table-scroll {
+  width: 100%;
   overflow-x: auto;
+}
+
+.pretty-table {
+  min-width: 680px;
+}
+
+.compact-table {
+  min-width: 360px;
+}
+
+.pretty-table th,
+.pretty-table td {
+  white-space: nowrap;
+}
+
+.pretty-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pretty-table tbody tr:nth-child(even) {
+  background: #fbfcfc;
+}
+
+.pretty-table tbody tr:hover {
+  background: var(--soft);
+}
+
+.pretty-table td:not(:first-child),
+.pretty-table th:not(:first-child) {
+  text-align: left;
+  direction: ltr;
 }
 
 [hidden] {
@@ -453,6 +523,7 @@ input[type="month"] {
   .entry-form,
   .debt-form,
   .analysis-grid,
+  .detail-tables,
   .section-actions,
   .summary-grid,
   .categories,
