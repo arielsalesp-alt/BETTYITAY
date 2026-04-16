@@ -121,13 +121,37 @@ h2 {
 
 .toolbar,
 .entry-panel,
-.debt-section {
+.debt-section,
+.cloud-panel {
   margin-top: 28px;
   padding: 22px;
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: 8px;
   box-shadow: var(--shadow);
+}
+
+.cloud-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.cloud-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(160px, 1fr) repeat(3, auto);
+  gap: 12px;
+  align-items: end;
+}
+
+.cloud-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.cloud-error {
+  color: var(--coral);
+  font-weight: 800;
 }
 
 .analysis-grid {
@@ -522,6 +546,7 @@ input[type="month"] {
   .topbar,
   .entry-form,
   .debt-form,
+  .cloud-form,
   .analysis-grid,
   .detail-tables,
   .section-actions,
@@ -576,7 +601,8 @@ input[type="month"] {
 
   .toolbar,
   .entry-panel,
-  .debt-section {
+  .debt-section,
+  .cloud-panel {
     padding: 16px;
     margin-top: 16px;
   }
@@ -587,6 +613,8 @@ input[type="month"] {
 
   .toolbar > *,
   .toolbar button,
+  .cloud-form > *,
+  .cloud-form button,
   .entry-form button,
   .debt-form button,
   .button-row button {

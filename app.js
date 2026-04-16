@@ -1,4 +1,5 @@
 const STORAGE_KEY = "family-expense-manager-2026";
+const CLOUD_CONFIG_KEY = "family-expense-manager-cloud-config";
 
 const els = {
   monthSelect: document.querySelector("#monthSelect"),
@@ -8,6 +9,12 @@ const els = {
   entryForm: document.querySelector("#entryForm"),
   exportBtn: document.querySelector("#exportBtn"),
   importInput: document.querySelector("#importInput"),
+  cloudEndpointInput: document.querySelector("#cloudEndpointInput"),
+  cloudTokenInput: document.querySelector("#cloudTokenInput"),
+  saveCloudSettingsBtn: document.querySelector("#saveCloudSettingsBtn"),
+  loadCloudBtn: document.querySelector("#loadCloudBtn"),
+  saveCloudBtn: document.querySelector("#saveCloudBtn"),
+  cloudStatus: document.querySelector("#cloudStatus"),
   closeMonthBtn: document.querySelector("#closeMonthBtn"),
   addMonthBtn: document.querySelector("#addMonthBtn"),
   openDebtsBtn: document.querySelector("#openDebtsBtn"),
@@ -36,6 +43,8 @@ let state = loadState();
 state = migrateState(state);
 saveState();
 let selectedMonth = 0;
+let cloudSaveTimer = null;
+let cloudReady = false;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -184,6 +193,116 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function persistState() {
+  saveState();
+  scheduleCloudSave();
+}
+
+function loadCloudConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY)) || { endpoint: "", token: "" };
+  } catch {
+    localStorage.removeItem(CLOUD_CONFIG_KEY);
+    return { endpoint: "", token: "" };
+  }
+}
+
+function saveCloudConfig(config) {
+  localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
+}
+
+function getCloudConfigFromInputs() {
+  return {
+    endpoint: els.cloudEndpointInput.value.trim(),
+    token: els.cloudTokenInput.value.trim(),
+  };
+}
+
+function setCloudStatus(message, isError = false) {
+  if (!els.cloudStatus) return;
+  els.cloudStatus.textContent = message;
+  els.cloudStatus.classList.toggle("cloud-error", isError);
+}
+
+function hasCloudConfig(config = loadCloudConfig()) {
+  return Boolean(config.endpoint && config.token);
+}
+
+function initCloudSync() {
+  const config = loadCloudConfig();
+  els.cloudEndpointInput.value = config.endpoint || "";
+  els.cloudTokenInput.value = config.token || "";
+  cloudReady = true;
+  if (!hasCloudConfig(config)) {
+    setCloudStatus("עדיין לא הוגדר חיבור. הנתונים נשמרים במכשיר הזה בלבד.");
+    return;
+  }
+  setCloudStatus("מחובר ל-Google Sheets. הנתונים יישמרו גם בענן.");
+  loadCloudState({ silent: true });
+}
+
+function scheduleCloudSave() {
+  if (!cloudReady || !hasCloudConfig()) return;
+  window.clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = window.setTimeout(() => saveCloudState({ silent: true }), 900);
+}
+
+async function requestCloud(action, data = null) {
+  const config = loadCloudConfig();
+  if (!hasCloudConfig(config)) {
+    throw new Error("לא הוגדר חיבור Google Sheets.");
+  }
+  const payload = { action, token: config.token, data, savedAt: new Date().toISOString() };
+  const response = await fetch(config.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json();
+  if (!result.ok) {
+    throw new Error(result.error || "שגיאה בחיבור ל-Google Sheets.");
+  }
+  return result;
+}
+
+async function loadCloudState(options = {}) {
+  try {
+    const result = await requestCloud("load");
+    if (result.data?.months) {
+      state = migrateState(result.data);
+      selectedMonth = Math.min(selectedMonth, state.months.length - 1);
+      saveState();
+      renderSelectors();
+      render();
+      setCloudStatus(`נטען מהענן: ${formatCloudTime(result.updatedAt)}`);
+    } else if (!options.silent) {
+      setCloudStatus("אין עדיין נתונים בענן. אפשר ללחוץ שמור עכשיו בענן.");
+    }
+  } catch (error) {
+    setCloudStatus(error.message, true);
+  }
+}
+
+async function saveCloudState(options = {}) {
+  try {
+    await requestCloud("save", state);
+    if (!options.silent) {
+      setCloudStatus("נשמר בענן בהצלחה.");
+    } else {
+      setCloudStatus("נשמר אוטומטית בענן.");
+    }
+  } catch (error) {
+    setCloudStatus(`נשמר במכשיר בלבד. ${error.message}`, true);
+  }
+}
+
+function formatCloudTime(value) {
+  if (!value) return "אין תאריך שמירה";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("he-IL", { dateStyle: "short", timeStyle: "short" }).format(date);
+}
+
 function money(value) {
   return new Intl.NumberFormat("he-IL", {
     style: "currency",
@@ -259,7 +378,7 @@ function addNextMonth() {
   const nextMonth = buildNextMonthFromTemplate(latest, nextName);
   state.months.splice(latest.index + 1, 0, nextMonth);
   selectedMonth = latest.index + 1;
-  saveState();
+  persistState();
   renderSelectors();
   render();
 }
@@ -529,7 +648,7 @@ function closeMonth() {
     state.debts.monthClosures.push(closure);
   }
 
-  saveState();
+  persistState();
   render();
   openDebts();
   window.alert(`החודש נסגר. ${getMonthlyDebtText(getMonthlyDebtBalance())}: ${money(Math.abs(getMonthlyDebtBalance()))}`);
@@ -548,7 +667,7 @@ function closeDebts() {
 function toggleMonthClosuresInTotal() {
   ensureDebtStructures(state);
   state.debts.includeMonthClosuresInTotal = !state.debts.includeMonthClosuresInTotal;
-  saveState();
+  persistState();
   renderDebts();
 }
 
@@ -595,7 +714,7 @@ els.entryForm.addEventListener("submit", (event) => {
   event.currentTarget.reset();
   event.currentTarget.elements.betty.value = 0;
   event.currentTarget.elements.itai.value = 0;
-  saveState();
+  persistState();
   render();
 });
 
@@ -605,7 +724,7 @@ els.categories.addEventListener("change", (event) => {
   const category = getMonth().categories[Number(input.dataset.category)];
   const item = category.items[Number(input.dataset.item)];
   item[input.dataset.field] = input.dataset.field === "name" ? input.value : Number(input.value) || 0;
-  saveState();
+  persistState();
   render();
 });
 
@@ -619,7 +738,7 @@ els.categories.addEventListener("click", (event) => {
     return;
   }
   category.items.splice(Number(button.dataset.deleteItem), 1);
-  saveState();
+  persistState();
   render();
 });
 
@@ -639,11 +758,25 @@ els.importInput.addEventListener("change", async (event) => {
   state = JSON.parse(await file.text());
   state = migrateState(state);
   selectedMonth = 0;
-  saveState();
+  persistState();
   renderSelectors();
   render();
   event.target.value = "";
 });
+
+els.saveCloudSettingsBtn.addEventListener("click", () => {
+  const config = getCloudConfigFromInputs();
+  saveCloudConfig(config);
+  if (!hasCloudConfig(config)) {
+    setCloudStatus("צריך למלא כתובת Google Apps Script וגם קוד סודי.", true);
+    return;
+  }
+  setCloudStatus("החיבור נשמר. בודק טעינה מהענן...");
+  loadCloudState();
+});
+
+els.loadCloudBtn.addEventListener("click", () => loadCloudState());
+els.saveCloudBtn.addEventListener("click", () => saveCloudState());
 
 els.closeMonthBtn.addEventListener("click", closeMonth);
 els.addMonthBtn.addEventListener("click", addNextMonth);
@@ -653,3 +786,4 @@ els.toggleMonthClosuresInTotalBtn.addEventListener("click", toggleMonthClosuresI
 
 renderSelectors();
 render();
+initCloudSync();

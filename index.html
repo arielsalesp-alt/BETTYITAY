@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="seed-data.js" defer></script>
   <script src="archive-data.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=6" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -37,6 +37,27 @@
     </section>
 
     <section class="summary-grid" id="summary"></section>
+
+    <section class="cloud-panel">
+      <div>
+        <p class="eyebrow">שמירה בענן</p>
+        <h2>Google Sheets</h2>
+        <p class="cloud-note" id="cloudStatus">עדיין לא הוגדר חיבור. הנתונים נשמרים במכשיר הזה בלבד.</p>
+      </div>
+      <div class="cloud-form">
+        <label>
+          כתובת Google Apps Script
+          <input id="cloudEndpointInput" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+        </label>
+        <label>
+          קוד סודי
+          <input id="cloudTokenInput" type="password" autocomplete="off" placeholder="קוד שתגדיר בסקריפט">
+        </label>
+        <button id="saveCloudSettingsBtn" type="button">שמור חיבור</button>
+        <button id="loadCloudBtn" type="button">טען מהענן</button>
+        <button id="saveCloudBtn" type="button">שמור עכשיו בענן</button>
+      </div>
+    </section>
 
     <section class="entry-panel">
       <div>
