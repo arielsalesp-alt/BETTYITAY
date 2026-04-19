@@ -45,6 +45,7 @@ saveState();
 let selectedMonth = 0;
 let cloudSaveTimer = null;
 let cloudReady = false;
+let cloudJsonpCounter = 0;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -247,27 +248,113 @@ function scheduleCloudSave() {
   cloudSaveTimer = window.setTimeout(() => saveCloudState({ silent: true }), 900);
 }
 
-async function requestCloud(action, data = null) {
+function buildCloudUrl(config, params) {
+  const url = new URL(config.endpoint);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  return url.toString();
+}
+
+function requestCloudLoad() {
   const config = loadCloudConfig();
   if (!hasCloudConfig(config)) {
-    throw new Error("לא הוגדר חיבור Google Sheets.");
+    return Promise.reject(new Error("לא הוגדר חיבור Google Sheets."));
   }
-  const payload = { action, token: config.token, data, savedAt: new Date().toISOString() };
-  const response = await fetch(config.endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
+
+  return new Promise((resolve, reject) => {
+    const callbackName = `bettyItayCloudCallback${Date.now()}${cloudJsonpCounter++}`;
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("לא התקבלה תשובה מ-Google Sheets."));
+    }, 20000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (result) => {
+      cleanup();
+      if (!result || !result.ok) {
+        reject(new Error(result?.error || "שגיאה בטעינה מ-Google Sheets."));
+        return;
+      }
+      resolve(result);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("הדפדפן לא הצליח לטעון את Google Sheets."));
+    };
+
+    script.src = buildCloudUrl(config, {
+      action: "load",
+      token: config.token,
+      callback: callbackName,
+      t: Date.now().toString(),
+    });
+    document.body.appendChild(script);
   });
-  const result = await response.json();
-  if (!result.ok) {
-    throw new Error(result.error || "שגיאה בחיבור ל-Google Sheets.");
+}
+
+function requestCloudSave(data) {
+  const config = loadCloudConfig();
+  if (!hasCloudConfig(config)) {
+    return Promise.reject(new Error("לא הוגדר חיבור Google Sheets."));
   }
-  return result;
+
+  return new Promise((resolve, reject) => {
+    const iframeName = `cloudSaveFrame${Date.now()}${cloudJsonpCounter++}`;
+    const iframe = document.createElement("iframe");
+    const form = document.createElement("form");
+    let submitted = false;
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Google Sheets לא אישר את השמירה בזמן."));
+    }, 25000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      form.remove();
+      iframe.remove();
+    }
+
+    function addField(name, value) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    iframe.name = iframeName;
+    iframe.style.display = "none";
+    iframe.onload = () => {
+      if (!submitted) return;
+      cleanup();
+      resolve({ ok: true, updatedAt: new Date().toISOString() });
+    };
+
+    form.method = "POST";
+    form.action = config.endpoint;
+    form.target = iframeName;
+    form.style.display = "none";
+    addField("action", "save");
+    addField("token", config.token);
+    addField("savedAt", new Date().toISOString());
+    addField("data", JSON.stringify(data));
+
+    document.body.appendChild(iframe);
+    document.body.appendChild(form);
+    submitted = true;
+    form.submit();
+  });
 }
 
 async function loadCloudState(options = {}) {
   try {
-    const result = await requestCloud("load");
+    const result = await requestCloudLoad();
     if (result.data?.months) {
       state = migrateState(result.data);
       selectedMonth = Math.min(selectedMonth, state.months.length - 1);
@@ -285,7 +372,7 @@ async function loadCloudState(options = {}) {
 
 async function saveCloudState(options = {}) {
   try {
-    await requestCloud("save", state);
+    await requestCloudSave(state);
     if (!options.silent) {
       setCloudStatus("נשמר בענן בהצלחה.");
     } else {
